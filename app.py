@@ -3,7 +3,7 @@ from groq import Groq
 
 # Set up the Groq client using the API key
 client = Groq(
-    api_key = st.secrets["api_key"]
+    api_key=st.secrets["api_key"]
 )
 
 # Function to generate a question based on a specified subject
@@ -57,23 +57,23 @@ def run_quiz():
     # Generate a question based on user input
     if subject and st.button("Generate Question"):
         question = generate_question(subject)
+        st.session_state["question"] = question  # Store the question in session state
+        st.session_state["correct_answer"] = generate_correct_answer(question)  # Generate and store correct answer
         st.write(f"**Question:** {question}")
 
-        # Dynamically generate the correct answer based on the question
-        correct_answer = generate_correct_answer(question)
-
-        # Display the correct answer if needed (for testing)
-        st.write("### Correct Answer (for verification):")
-        st.write(correct_answer)
-
+    # Check if a question is already generated
+    if "question" in st.session_state:
         # Answer input box
         user_answer = st.text_area("Your Answer")
 
         # Submit answer and get feedback
         if user_answer and st.button("Submit Answer"):
+            correct_answer = st.session_state["correct_answer"]
             feedback = check_answer(user_answer, correct_answer)
 
-            # Display feedback
+            # Display the correct answer and feedback only after the user has submitted an answer
+            st.write("### Correct Answer:")
+            st.write(correct_answer)
             st.write("### Feedback and Recommendations:")
             st.write(feedback)
 
