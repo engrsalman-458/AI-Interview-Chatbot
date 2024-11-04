@@ -1,4 +1,10 @@
-groq
-streamlit
+#groq
+#streamlit
+#pydub
+#gtts
+
+streamlit>=1.10.0
 pydub
-gtts
+gTTS
+ffmpeg-python
+
