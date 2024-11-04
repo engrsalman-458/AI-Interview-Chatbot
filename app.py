@@ -9,42 +9,48 @@ client = Groq(
 # Function to generate a question based on a specified subject
 def generate_question(subject):
     prompt = f"""
-    Generate a question related to the following subject: {subject}.
+    Generate a short, relevant question related to the following subject: {subject}.
+    Keep it concise and clear.
     """
     chat_completion = client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
         model="llama3-8b-8192",
     )
-    return chat_completion.choices[0].message.content
+    return chat_completion.choices[0].message.content.strip()
 
-# Function to generate the correct answer for a given question
+# Function to generate a concise correct answer for a given question
 def generate_correct_answer(question):
     prompt = f"""
-    Provide a correct answer for the following question:
+    Provide a concise answer for the following question:
     
     Question: {question}
+    Answer in 1-2 sentences.
     """
     chat_completion = client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
         model="llama3-8b-8192",
     )
-    return chat_completion.choices[0].message.content
+    return chat_completion.choices[0].message.content.strip()
 
-# Function to check the user's answer against the dynamically generated correct answer and provide feedback
+# Function to check the user's answer against the dynamically generated correct answer and provide brief feedback
 def check_answer(user_answer, correct_answer):
+    # Ensure user answer is not empty before proceeding
+    if not user_answer.strip():
+        return "Please enter a valid answer to receive feedback."
+
     prompt = f"""
-    Evaluate the following answer and indicate whether it is correct or not:
+    Evaluate the following answer briefly and indicate if it is correct or not.
 
     User Answer: {user_answer}
     Correct Answer: {correct_answer}
 
-    Provide feedback and suggest improvements if the answer is incorrect.
+    Provide brief feedback if the answer is incorrect.
     """
     chat_completion = client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
         model="llama3-8b-8192",
     )
-    return chat_completion.choices[0].message.content
+    return chat_completion.choices[0].message.content.strip()
 
 # Streamlit app for interactive quiz
 def run_quiz():
