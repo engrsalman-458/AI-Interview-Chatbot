@@ -1,7 +1,7 @@
 import streamlit as st
 from groq import Groq
 from io import BytesIO
-import pydub
+from gtts import gTTS
 
 # Set up the Groq client using the API key
 client = Groq(api_key=st.secrets["api_key"])
@@ -24,10 +24,13 @@ def generate_correct_answer(question):
     )
     return chat_completion.choices[0].message.content.strip()
 
-# Function to synthesize and play question audio
+# Function to synthesize audio using gTTS
 def synthesize_audio(text):
-    audio_data = client.speech.synthesize(text=text, model="whisper-large-v3")
-    return BytesIO(audio_data)
+    tts = gTTS(text=text, lang='en')
+    audio_file = BytesIO()
+    tts.write_to_fp(audio_file)
+    audio_file.seek(0)
+    return audio_file
 
 # Function to check the user's answer against the correct answer
 def check_answer(user_answer, correct_answer):
@@ -59,7 +62,7 @@ def run_quiz():
         st.session_state["question"] = question
         st.session_state["correct_answer"] = generate_correct_answer(question)
         
-        # Convert question to audio and play
+        # Convert question to audio using gTTS and play
         audio_file = synthesize_audio(question)
         st.audio(audio_file, format="audio/mp3")
         st.write(f"**Question:** {question}")
