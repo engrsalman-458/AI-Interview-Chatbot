@@ -1,5 +1,5 @@
-#import streamlit as st
-#from groq import Groq
+import streamlit as st
+from groq import Groq
 
 # Set up the Groq client using the API key
 client = Groq(
