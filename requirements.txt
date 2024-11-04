@@ -1,12 +1,7 @@
-#groq
-#streamlit
-#pydub
-#gtts
+groq
+streamlit
 
-streamlit>=1.10.0
-pydub
-gTTS
-ffmpeg
+
 
 
 
