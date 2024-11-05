@@ -1,17 +1,14 @@
 import streamlit as st
 from groq import Groq
+from io import BytesIO
+import pydub
 
 # Set up the Groq client using the API key
-client = Groq(
-    api_key=st.secrets["api_key"]
-)
+client = Groq(api_key=st.secrets["api_key"])
 
 # Function to generate a question based on a specified subject
 def generate_question(subject):
-    prompt = f"""
-    Generate a short, relevant question related to the following subject: {subject}.
-    Keep it concise and clear.
-    """
+    prompt = f"Generate a short, relevant question related to the following subject: {subject}. Keep it concise and clear."
     chat_completion = client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
         model="llama3-8b-8192",
@@ -20,32 +17,35 @@ def generate_question(subject):
 
 # Function to generate a concise correct answer for a given question
 def generate_correct_answer(question):
-    prompt = f"""
-    Provide a concise answer for the following question:
-    
-    Question: {question}
-    Answer in 1-2 sentences.
-    """
+    prompt = f"Provide a concise answer for the following question:\n\nQuestion: {question}\nAnswer in 1-2 sentences."
     chat_completion = client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
         model="llama3-8b-8192",
     )
     return chat_completion.choices[0].message.content.strip()
 
+# Function to convert text to speech using Groq's Whisper model
+def text_to_speech(text):
+    audio_data = client.whisper.text_to_speech.create(
+        text=text,
+        model="whisper-large-v3-turbo",
+    )
+    return BytesIO(audio_data.content)
+
+# Function to transcribe audio to text using Groq's Whisper model
+def transcribe_audio(audio_file):
+    transcription = client.whisper.speech_to_text.create(
+        audio=audio_file,
+        model="whisper-large-v3-turbo",
+    )
+    return transcription.text.strip()
+
 # Function to check the user's answer against the dynamically generated correct answer and provide brief feedback
 def check_answer(user_answer, correct_answer):
-    # Ensure user answer is not empty before proceeding
     if not user_answer.strip():
         return "Please enter a valid answer to receive feedback."
-
-    prompt = f"""
-    Evaluate the following answer briefly and indicate if it is correct or not.
-
-    User Answer: {user_answer}
-    Correct Answer: {correct_answer}
-
-    Provide brief feedback if the answer is incorrect.
-    """
+    
+    prompt = f"Evaluate the following answer briefly and indicate if it is correct or not.\n\nUser Answer: {user_answer}\nCorrect Answer: {correct_answer}\n\nProvide brief feedback if the answer is incorrect."
     chat_completion = client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
         model="llama3-8b-8192",
@@ -54,30 +54,43 @@ def check_answer(user_answer, correct_answer):
 
 # Streamlit app for interactive quiz
 def run_quiz():
-    st.title("Interactive Quiz App")
+    st.title("Interactive Voice Quiz App")
     st.write("Enter your field of specialization, answer the generated question, and get feedback.")
 
     # User input for specialization
     subject = st.text_input("Field of Specialization")
 
-    # Generate a question based on user input
+    # Generate a question and provide voice output
     if subject and st.button("Generate Question"):
         question = generate_question(subject)
-        st.session_state["question"] = question  # Store the question in session state
-        st.session_state["correct_answer"] = generate_correct_answer(question)  # Generate and store correct answer
+        st.session_state["question"] = question
+        st.session_state["correct_answer"] = generate_correct_answer(question)
+        
+        # Display question and convert to audio
         st.write(f"**Question:** {question}")
+        audio_data = text_to_speech(question)
+        st.audio(audio_data, format="audio/mp3")
 
     # Check if a question is already generated
     if "question" in st.session_state:
-        # Answer input box
-        user_answer = st.text_area("Your Answer")
+        # Record answer (simulate with file upload for audio input)
+        st.write("Record your answer or type it below:")
+        audio_file = st.file_uploader("Upload your audio answer (MP3 or WAV)", type=["mp3", "wav"])
+        user_answer_text = st.text_area("Or type your answer here:")
+
+        # Process recorded answer if uploaded
+        if audio_file is not None:
+            user_answer = transcribe_audio(audio_file)
+            st.write(f"Transcribed Answer: {user_answer}")
+        elif user_answer_text:
+            user_answer = user_answer_text.strip()
+        else:
+            user_answer = ""
 
         # Submit answer and get feedback
         if user_answer and st.button("Submit Answer"):
             correct_answer = st.session_state["correct_answer"]
             feedback = check_answer(user_answer, correct_answer)
-
-            # Display the correct answer and feedback only after the user has submitted an answer
             st.write("### Correct Answer:")
             st.write(correct_answer)
             st.write("### Feedback and Recommendations:")
