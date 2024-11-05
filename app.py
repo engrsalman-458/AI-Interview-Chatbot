@@ -1,7 +1,7 @@
 import streamlit as st
 from groq import Groq
-from streamlit_webrtc import webrtc_streamer, AudioProcessorBase, WebRtcMode
-import av
+from io import BytesIO
+from gtts import gTTS
 
 # Set up the Groq client using the API key
 client = Groq(api_key=st.secrets["api_key"])
@@ -24,6 +24,22 @@ def generate_correct_answer(question):
     )
     return chat_completion.choices[0].message.content.strip()
 
+# Function to convert text to speech using gTTS
+def text_to_speech(text):
+    tts = gTTS(text=text, lang='en')
+    audio_buffer = BytesIO()
+    tts.write_to_fp(audio_buffer)
+    audio_buffer.seek(0)
+    return audio_buffer
+
+# Function to transcribe audio to text using Groq's Whisper model
+def transcribe_audio(audio_file):
+    transcription = client.whisper.speech_to_text.create(
+        audio=audio_file,
+        model="whisper-large-v3-turbo",
+    )
+    return transcription.text.strip()
+
 # Function to check the user's answer against the dynamically generated correct answer and provide brief feedback
 def check_answer(user_answer, correct_answer):
     if not user_answer.strip():
@@ -36,20 +52,7 @@ def check_answer(user_answer, correct_answer):
     )
     return chat_completion.choices[0].message.content.strip()
 
-# Custom audio processor for capturing real-time audio
-class AudioProcessor(AudioProcessorBase):
-    def __init__(self):
-        self.audio_data = []
-
-    def recv(self, frame):
-        audio = frame.to_ndarray()
-        self.audio_data.append(audio)
-        return av.AudioFrame.from_ndarray(audio, layout="mono")
-
-    def get_audio_data(self):
-        return self.audio_data
-
-# Streamlit app for interactive quiz with real-time audio
+# Streamlit app for interactive quiz
 def run_quiz():
     st.title("Interactive Voice Quiz App")
     st.write("Enter your field of specialization, answer the generated question, and get feedback.")
@@ -63,44 +66,35 @@ def run_quiz():
         st.session_state["question"] = question
         st.session_state["correct_answer"] = generate_correct_answer(question)
         
-        # Display question
+        # Display question and convert to audio
         st.write(f"**Question:** {question}")
+        audio_data = text_to_speech(question)
+        st.audio(audio_data, format="audio/mp3")
 
     # Check if a question is already generated
     if "question" in st.session_state:
-        st.write("Record your answer in real-time:")
+        # Record answer (simulate with file upload for audio input)
+        st.write("Record your answer or type it below:")
+        audio_file = st.file_uploader("Upload your audio answer (MP3 or WAV)", type=["mp3", "wav"])
+        user_answer_text = st.text_area("Or type your answer here:")
 
-        # Real-time audio capture using WebRTC
-        webrtc_ctx = webrtc_streamer(
-            key="real-time-audio",
-            mode=WebRtcMode.SENDRECV,
-            audio_processor_factory=AudioProcessor,
-            media_stream_constraints={"audio": True, "video": False},
-            async_processing=True,
-        )
+        # Process recorded answer if uploaded
+        if audio_file is not None:
+            user_answer = transcribe_audio(audio_file)
+            st.write(f"Transcribed Answer: {user_answer}")
+        elif user_answer_text:
+            user_answer = user_answer_text.strip()
+        else:
+            user_answer = ""
 
-        # Transcribe and evaluate audio answer once recording is complete
-        if webrtc_ctx.state.playing:
-            processor = webrtc_ctx.audio_processor
-            if processor:
-                audio_data = processor.get_audio_data()
-                if audio_data:
-                    st.write("Transcribing your answer...")
-                    # Transcribe real-time audio
-                    transcription = client.whisper.speech_to_text.create(
-                        audio=audio_data,
-                        model="whisper-large-v3-turbo",
-                    )
-                    user_answer = transcription.text.strip()
-                    st.write(f"Transcribed Answer: {user_answer}")
-
-                    # Check answer and provide feedback
-                    correct_answer = st.session_state["correct_answer"]
-                    feedback = check_answer(user_answer, correct_answer)
-                    st.write("### Correct Answer:")
-                    st.write(correct_answer)
-                    st.write("### Feedback and Recommendations:")
-                    st.write(feedback)
+        # Submit answer and get feedback
+        if user_answer and st.button("Submit Answer"):
+            correct_answer = st.session_state["correct_answer"]
+            feedback = check_answer(user_answer, correct_answer)
+            st.write("### Correct Answer:")
+            st.write(correct_answer)
+            st.write("### Feedback and Recommendations:")
+            st.write(feedback)
 
 # Run the quiz function in Streamlit
 run_quiz()
