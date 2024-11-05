@@ -4,6 +4,7 @@ from io import BytesIO
 from gtts import gTTS
 from streamlit_webrtc import webrtc_streamer, AudioProcessorBase, WebRtcMode
 import av
+import numpy as np
 
 # Set up the Groq client using the API key
 client = Groq(api_key=st.secrets["api_key"])
@@ -53,7 +54,23 @@ class AudioProcessor(AudioProcessorBase):
         return av.AudioFrame.from_ndarray(audio, layout="mono")
 
     def get_audio_data(self):
-        return self.audio_data
+        # Combine all audio data to create a continuous audio stream
+        if self.audio_data:
+            combined_audio = np.concatenate(self.audio_data, axis=0).astype(np.float32)
+            return BytesIO(combined_audio.tobytes())
+        return None
+
+# Function to check the user's answer against the dynamically generated correct answer and provide brief feedback
+def check_answer(user_answer, correct_answer):
+    if not user_answer.strip():
+        return "Please enter a valid answer to receive feedback."
+    
+    prompt = f"Evaluate the following answer briefly and indicate if it is correct or not.\n\nUser Answer: {user_answer}\nCorrect Answer: {correct_answer}\n\nProvide brief feedback if the answer is incorrect."
+    chat_completion = client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="llama3-8b-8192",
+    )
+    return chat_completion.choices[0].message.content.strip()
 
 # Streamlit app for interactive quiz
 def run_quiz():
@@ -76,8 +93,8 @@ def run_quiz():
 
     # Check if a question is already generated
     if "question" in st.session_state:
-        st.write("Record your answer in real-time or type it below:")
-        
+        st.write("Record your answer or type it below:")
+
         # Real-time audio recording setup
         webrtc_ctx = webrtc_streamer(
             key="real-time-audio",
@@ -90,9 +107,9 @@ def run_quiz():
         # Text area for optional text-based answer
         user_answer_text = st.text_area("Or type your answer here:")
 
-        # Process recorded answer
+        # Capture and process recorded audio for transcription
         user_answer = ""
-        if webrtc_ctx.state.playing:
+        if webrtc_ctx.state.playing and st.button("Stop and Submit Recording"):
             processor = webrtc_ctx.audio_processor
             if processor:
                 audio_data = processor.get_audio_data()
