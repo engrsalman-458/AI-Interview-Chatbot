@@ -1,7 +1,7 @@
 import streamlit as st
 from groq import Groq
 from io import BytesIO
-import pydub
+from gtts import gTTS
 
 # Set up the Groq client using the API key
 client = Groq(api_key=st.secrets["api_key"])
@@ -24,13 +24,13 @@ def generate_correct_answer(question):
     )
     return chat_completion.choices[0].message.content.strip()
 
-# Function to convert text to speech using Groq's Whisper model
+# Function to convert text to speech using gTTS
 def text_to_speech(text):
-    audio_data = client.whisper.text_to_speech.create(
-        text=text,
-        model="whisper-large-v3-turbo",
-    )
-    return BytesIO(audio_data.content)
+    tts = gTTS(text=text, lang='en')
+    audio_buffer = BytesIO()
+    tts.write_to_fp(audio_buffer)
+    audio_buffer.seek(0)
+    return audio_buffer
 
 # Function to transcribe audio to text using Groq's Whisper model
 def transcribe_audio(audio_file):
