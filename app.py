@@ -54,7 +54,6 @@ class AudioProcessor(AudioProcessorBase):
         return av.AudioFrame.from_ndarray(audio, layout="mono")
 
     def get_audio_data(self):
-        # Combine all audio data to create a continuous audio stream
         if self.audio_data:
             combined_audio = np.concatenate(self.audio_data, axis=0).astype(np.float32)
             return BytesIO(combined_audio.tobytes())
@@ -93,7 +92,7 @@ def run_quiz():
 
     # Check if a question is already generated
     if "question" in st.session_state:
-        st.write("Record your answer or type it below:")
+        st.write("Record your answer in real-time or type it below:")
 
         # Real-time audio recording setup
         webrtc_ctx = webrtc_streamer(
@@ -109,14 +108,12 @@ def run_quiz():
 
         # Capture and process recorded audio for transcription
         user_answer = ""
-        if webrtc_ctx.state.playing and st.button("Stop and Submit Recording"):
-            processor = webrtc_ctx.audio_processor
-            if processor:
-                audio_data = processor.get_audio_data()
-                if audio_data:
-                    st.write("Transcribing your answer...")
-                    user_answer = transcribe_audio(audio_data)
-                    st.write(f"Transcribed Answer: {user_answer}")
+        if webrtc_ctx and webrtc_ctx.audio_processor and st.button("Stop and Submit Recording"):
+            audio_data = webrtc_ctx.audio_processor.get_audio_data()
+            if audio_data:
+                st.write("Transcribing your answer...")
+                user_answer = transcribe_audio(audio_data)
+                st.write(f"Transcribed Answer: {user_answer}")
         elif user_answer_text:
             user_answer = user_answer_text.strip()
 
