@@ -46,7 +46,7 @@ def check_answer(user_answer, correct_answer):
 
 # Streamlit app for interactive quiz
 def run_quiz():
-    st.title("Interactive Quiz App")
+    st.title("AI Powered Interactive Interview App")
     st.write("Enter your field of specialization, answer the generated question, and get feedback.")
 
     # User input for specialization
