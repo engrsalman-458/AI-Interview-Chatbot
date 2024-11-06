@@ -1,6 +1,7 @@
 streamlit
 groq
-pydub
-ffmpeg
-gtts
+gTTS
 streamlit-webrtc
+av
+numpy
+aiortc
