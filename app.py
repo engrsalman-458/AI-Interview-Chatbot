@@ -46,35 +46,46 @@ def check_answer(user_answer, correct_answer):
 
 # Streamlit app for interactive quiz
 def run_quiz():
-    st.title("AI Powered Interactive Interview App")
-    st.write("Enter your field of specialization, answer the generated question, and get feedback.")
-
+    # Enhanced UI Layout and Style
+    st.markdown("<h1 style='text-align: center; color: #4CAF50;'>AI Powered Interactive Interview App</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: grey;'>Generate questions and get feedback on your answers</p>", unsafe_allow_html=True)
+    st.write("---")
+    
     # User input for specialization
-    subject = st.text_input("Field of Specialization")
+    subject = st.text_input("📝 Enter your Field of Specialization")
+    
+    # Generate question button and section
+    if subject:
+        if st.button("🔍 Generate Question"):
+            question = generate_question(subject)
+            st.session_state["question"] = question
+            st.session_state["correct_answer"] = generate_correct_answer(question)
+            
+            # Display question
+            st.markdown(f"<h3 style='color: #0073e6;'>Question</h3>", unsafe_allow_html=True)
+            st.write(f"**{question}**")
+            
+            # Convert question to audio and play it
+            audio_data = text_to_speech(question)
+            st.audio(audio_data, format="audio/mp3")
 
-    # Generate a question and provide voice output
-    if subject and st.button("Generate Question"):
-        question = generate_question(subject)
-        st.session_state["question"] = question
-        st.session_state["correct_answer"] = generate_correct_answer(question)
-        
-        # Display question and convert to audio
-        st.write(f"**Question:** {question}")
-        audio_data = text_to_speech(question)
-        st.audio(audio_data, format="audio/mp3")
-
-    # Check if a question is already generated
+    # Answer input and feedback section
     if "question" in st.session_state:
+        st.write("---")
+        st.markdown("<h3 style='color: #FF6347;'>Your Answer</h3>", unsafe_allow_html=True)
+        
         # Answer input box
-        user_answer_text = st.text_area("Type your answer here:")
-
-        # Submit answer and get feedback
+        user_answer_text = st.text_area("💬 Type your answer here")
+        
+        # Submit answer button and feedback section
         if user_answer_text and st.button("Submit Answer"):
             correct_answer = st.session_state["correct_answer"]
             feedback = check_answer(user_answer_text.strip(), correct_answer)
-            st.write("### Correct Answer:")
-            st.write(correct_answer)
-            st.write("### Feedback and Recommendations:")
+            
+            st.write("---")
+            st.markdown("<h3 style='color: #228B22;'>Correct Answer</h3>", unsafe_allow_html=True)
+            st.write(f"**{correct_answer}**")
+            st.markdown("<h3 style='color: #DC143C;'>Feedback and Recommendations</h3>", unsafe_allow_html=True)
             st.write(feedback)
 
 # Run the quiz function in Streamlit
