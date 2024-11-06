@@ -2,9 +2,6 @@ import streamlit as st
 from groq import Groq
 from io import BytesIO
 from gtts import gTTS
-from streamlit_webrtc import webrtc_streamer, AudioProcessorBase, WebRtcMode
-import av
-import numpy as np
 
 # Set up the Groq client using the API key
 client = Groq(api_key=st.secrets["api_key"])
@@ -35,30 +32,6 @@ def text_to_speech(text):
     audio_buffer.seek(0)
     return audio_buffer
 
-# Function to transcribe audio to text using Groq's Whisper model
-def transcribe_audio(audio_data):
-    transcription = client.whisper.speech_to_text.create(
-        audio=audio_data,
-        model="whisper-large-v3-turbo",
-    )
-    return transcription.text.strip()
-
-# Audio processor class for real-time voice input
-class AudioProcessor(AudioProcessorBase):
-    def __init__(self):
-        self.audio_data = []
-
-    def recv(self, frame):
-        audio = frame.to_ndarray()
-        self.audio_data.append(audio)
-        return av.AudioFrame.from_ndarray(audio, layout="mono")
-
-    def get_audio_data(self):
-        if self.audio_data:
-            combined_audio = np.concatenate(self.audio_data, axis=0).astype(np.float32)
-            return BytesIO(combined_audio.tobytes())
-        return None
-
 # Function to check the user's answer against the dynamically generated correct answer and provide brief feedback
 def check_answer(user_answer, correct_answer):
     if not user_answer.strip():
@@ -73,7 +46,7 @@ def check_answer(user_answer, correct_answer):
 
 # Streamlit app for interactive quiz
 def run_quiz():
-    st.title("Interactive Voice Quiz App")
+    st.title("Interactive Quiz App")
     st.write("Enter your field of specialization, answer the generated question, and get feedback.")
 
     # User input for specialization
@@ -92,35 +65,13 @@ def run_quiz():
 
     # Check if a question is already generated
     if "question" in st.session_state:
-        st.write("Record your answer in real-time or type it below:")
-
-        # Real-time audio recording setup
-        webrtc_ctx = webrtc_streamer(
-            key="real-time-audio",
-            mode=WebRtcMode.SENDRECV,
-            audio_processor_factory=AudioProcessor,
-            media_stream_constraints={"audio": True, "video": False},
-            async_processing=True,
-        )
-
-        # Text area for optional text-based answer
-        user_answer_text = st.text_area("Or type your answer here:")
-
-        # Capture and process recorded audio for transcription
-        user_answer = ""
-        if webrtc_ctx and webrtc_ctx.audio_processor and st.button("Stop and Submit Recording"):
-            audio_data = webrtc_ctx.audio_processor.get_audio_data()
-            if audio_data:
-                st.write("Transcribing your answer...")
-                user_answer = transcribe_audio(audio_data)
-                st.write(f"Transcribed Answer: {user_answer}")
-        elif user_answer_text:
-            user_answer = user_answer_text.strip()
+        # Answer input box
+        user_answer_text = st.text_area("Type your answer here:")
 
         # Submit answer and get feedback
-        if user_answer and st.button("Submit Answer"):
+        if user_answer_text and st.button("Submit Answer"):
             correct_answer = st.session_state["correct_answer"]
-            feedback = check_answer(user_answer, correct_answer)
+            feedback = check_answer(user_answer_text.strip(), correct_answer)
             st.write("### Correct Answer:")
             st.write(correct_answer)
             st.write("### Feedback and Recommendations:")
