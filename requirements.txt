@@ -3,7 +3,8 @@ groq
 gTTS
 streamlit-webrtc
 pydub
-sounddevic
+sounddevice
 wave
 libportaudio2
 numpy
+ffmpeg
