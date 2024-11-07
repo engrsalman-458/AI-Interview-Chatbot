@@ -1,10 +1,5 @@
 streamlit
-groq
+groq 
 gTTS
-streamlit-webrtc
-pydub
 sounddevice
-wave
-libportaudio2
 numpy
-ffmpeg
