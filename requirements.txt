@@ -5,3 +5,5 @@ streamlit-webrtc
 pydub
 sounddevic
 wave
+libportaudio2
+numpy
