@@ -1,0 +1,2 @@
+ffmpeg  # For audio processing if required
+libportaudio2  # For sounddevice to work properly
