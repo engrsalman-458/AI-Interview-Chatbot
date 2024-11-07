@@ -1,5 +1,6 @@
 streamlit
-groq 
+groq  # Replace with the correct Groq package name
 gTTS
 sounddevice
 numpy
+pyaudio  # Optional, if libportaudio2 doesn't work
