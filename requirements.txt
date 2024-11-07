@@ -3,3 +3,5 @@ groq
 gTTS
 streamlit-webrtc
 pydub
+sounddevic
+wave
