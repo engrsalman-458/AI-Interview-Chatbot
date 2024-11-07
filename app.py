@@ -2,6 +2,10 @@ import streamlit as st
 from groq import Groq
 from io import BytesIO
 from gtts import gTTS
+import sounddevice as sd
+import numpy as np
+import tempfile
+import wave
 
 # Set up the Groq client using the API key
 client = Groq(api_key=st.secrets["api_key"])
@@ -31,6 +35,29 @@ def text_to_speech(text):
     tts.write_to_fp(audio_buffer)
     audio_buffer.seek(0)
     return audio_buffer
+
+# Function to transcribe audio to text using Groq model
+def transcribe_audio(audio_data):
+    audio_bytes = audio_data.read()
+    response = client.speech_to_text.create(
+        audio=audio_bytes,
+        model="groq-8b-speech",
+    )
+    return response["transcription"]
+
+# Function to capture audio input from microphone
+def record_audio(duration=5, fs=44100):
+    st.write("Recording... Speak now!")
+    audio = sd.rec(int(duration * fs), samplerate=fs, channels=1)
+    sd.wait()  # Wait until recording is finished
+    audio = np.squeeze(audio)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmpfile:
+        with wave.open(tmpfile.name, "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(fs)
+            wf.writeframes((audio * 32767).astype(np.int16).tobytes())
+        return tmpfile.name
 
 # Function to check the user's answer against the dynamically generated correct answer and provide brief feedback
 def check_answer(user_answer, correct_answer):
@@ -75,6 +102,14 @@ def run_quiz():
         
         # Answer input box
         user_answer_text = st.text_area("💬 Type your answer here")
+        
+        # Option to record voice response
+        if st.button("🎤 Record Answer (5 seconds)"):
+            audio_file_path = record_audio()
+            with open(audio_file_path, "rb") as audio_file:
+                transcribed_text = transcribe_audio(audio_file)
+            st.write("**Transcribed Answer:**", transcribed_text)
+            user_answer_text = transcribed_text
 
         # Submit answer and get feedback
         if user_answer_text and st.button("Submit Answer"):
