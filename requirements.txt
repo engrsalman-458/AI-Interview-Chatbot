@@ -4,3 +4,4 @@ gTTS
 sounddevice
 numpy
 pyaudio  # Optional, if libportaudio2 doesn't work
+ffmpeg  # For audio processing if required
