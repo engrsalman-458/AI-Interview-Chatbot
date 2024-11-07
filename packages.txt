@@ -1,2 +1,1 @@
-
-libportaudio2  # For sounddevice to work properly
+libportaudio2
